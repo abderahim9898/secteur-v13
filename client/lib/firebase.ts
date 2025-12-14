@@ -35,7 +35,6 @@ try {
 } catch (error: any) {
   if (error.code === 'app/duplicate-app') {
     // If app already exists, get the existing instance
-    const { getApp } = await import('firebase/app');
     app = getApp();
   } else {
     throw error;
