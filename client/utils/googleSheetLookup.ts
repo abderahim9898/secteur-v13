@@ -107,10 +107,10 @@ export const searchWorkerInGoogleSheet = async (
 };
 
 /**
- * Convert dd/MM/yyyy format to ISO date string
- * Handles multiple date formats: dd/MM/yyyy, ISO, and others
- * @param dateStr - Date string in various formats
- * @returns ISO date string (YYYY-MM-DD)
+ * Convert date to ISO format (YYYY-MM-DD) in Morocco timezone (GMT+1)
+ * Handles ISO dates with timezone info - converts to Morocco local date
+ * @param dateStr - Date string in ISO or dd/MM/yyyy format
+ * @returns ISO date string (YYYY-MM-DD) in Morocco timezone
  */
 export const parseFrenchDate = (dateStr: string): string | null => {
   if (!dateStr) return null;
@@ -124,9 +124,30 @@ export const parseFrenchDate = (dateStr: string): string | null => {
     return trimmed;
   }
 
-  // If ISO format (with time), extract just the date part
+  // Handle ISO format with timezone (e.g., 2025-11-30T23:00:00.000Z)
+  // Morocco is UTC+1, so we need to add 1 hour to get the local date
   if (/^\d{4}-\d{2}-\d{2}T/.test(trimmed)) {
-    return trimmed.split('T')[0];
+    try {
+      // Parse as UTC date
+      const date = new Date(trimmed);
+
+      // Create a formatter for Morocco timezone (UTC+1)
+      // We manually add 1 hour to convert from UTC to Morocco time
+      const moroccoDayMs = date.getTime() + (1 * 60 * 60 * 1000); // Add 1 hour for GMT+1
+      const moroccoDate = new Date(moroccoDayMs);
+
+      // Format as YYYY-MM-DD
+      const year = moroccoDate.getUTCFullYear();
+      const month = String(moroccoDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(moroccoDate.getUTCDate()).padStart(2, '0');
+
+      const result = `${year}-${month}-${day}`;
+      console.log(`⏰ Timezone conversion: ${trimmed} (UTC) → ${result} (Morocco GMT+1)`);
+      return result;
+    } catch (error) {
+      console.error('Error parsing ISO date:', error);
+      return null;
+    }
   }
 
   // Try dd/MM/yyyy format
