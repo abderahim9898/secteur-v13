@@ -7,8 +7,21 @@ export interface GoogleSheetWorker {
   matricule: string;
   nom_complet: string;
   cin: string;
-  date_entree: string; // Format: dd/MM/yyyy
+  sexe: string; // 'homme' or 'femme' (converted from H/M)
+  date_entree: string; // Format: YYYY-MM-DD
 }
+
+/**
+ * Convert gender code to French text
+ * @param code - 'H' for Homme, 'M' for Femme
+ * @returns 'homme' or 'femme'
+ */
+const convertGenderCode = (code: string): string => {
+  const upperCode = String(code || '').toUpperCase().trim();
+  if (upperCode === 'H') return 'homme';
+  if (upperCode === 'M') return 'femme';
+  return '';
+};
 
 /**
  * Search for worker in Google Sheet by matricule or CIN
