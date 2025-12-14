@@ -9,13 +9,17 @@ function doGet(e) {
   // Get search parameter (matricule or CIN)
   const searchValue = e.parameter.search ? e.parameter.search.toLowerCase().trim() : null;
 
+  // Morocco timezone: UTC+1
+  const moroccoCacheKey = 'GMT+1';
+
   // Convert dates to dd/MM/yyyy format and filter if search is provided
   const formattedData = data
     .map(row => {
       return row.map(cell => {
         if (cell instanceof Date) {
-          // Convert to text in dd/MM/yyyy format (Morocco timezone = GMT+1)
-          return Utilities.formatDate(cell, "GMT+1", "dd/MM/yyyy");
+          // Format date as dd/MM/yyyy in Morocco timezone (GMT+1)
+          // This ensures Nov 30 at 11 PM UTC = Dec 1 at 12 AM Morocco time displays as 01/12/2025
+          return Utilities.formatDate(cell, moroccoCacheKey, "dd/MM/yyyy");
         }
         return cell;
       });
