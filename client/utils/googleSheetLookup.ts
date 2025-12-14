@@ -82,22 +82,45 @@ export const searchWorkerInGoogleSheet = async (
 
 /**
  * Convert dd/MM/yyyy format to ISO date string
- * @param dateStr - Date string in dd/MM/yyyy format
+ * Handles multiple date formats: dd/MM/yyyy, ISO, and others
+ * @param dateStr - Date string in various formats
  * @returns ISO date string (YYYY-MM-DD)
  */
 export const parseFrenchDate = (dateStr: string): string | null => {
   if (!dateStr) return null;
 
-  const parts = dateStr.split('/');
-  if (parts.length !== 3) return null;
+  // Trim whitespace
+  const trimmed = String(dateStr).trim();
+  if (!trimmed) return null;
 
-  const [day, month, year] = parts;
-  const date = new Date(`${year}-${month}-${day}`);
-
-  if (isNaN(date.getTime())) {
-    return null;
+  // If already in YYYY-MM-DD format, return as is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
   }
 
-  // Return as YYYY-MM-DD format
-  return date.toISOString().split('T')[0];
+  // If ISO format (with time), extract just the date part
+  if (/^\d{4}-\d{2}-\d{2}T/.test(trimmed)) {
+    return trimmed.split('T')[0];
+  }
+
+  // Try dd/MM/yyyy format
+  const parts = trimmed.split('/');
+  if (parts.length === 3) {
+    const [day, month, year] = parts;
+
+    // Validate and parse
+    const dayNum = parseInt(day, 10);
+    const monthNum = parseInt(month, 10);
+    const yearNum = parseInt(year, 10);
+
+    if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12 && yearNum >= 1900) {
+      // Pad with zeros if needed
+      const paddedMonth = String(monthNum).padStart(2, '0');
+      const paddedDay = String(dayNum).padStart(2, '0');
+      return `${yearNum}-${paddedMonth}-${paddedDay}`;
+    }
+  }
+
+  console.warn(`Could not parse date: ${trimmed}`);
+  return null;
 };
