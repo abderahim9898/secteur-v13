@@ -877,7 +877,7 @@ export default function Workers() {
   // Enhanced CIN lookup with comprehensive worker information
   const [foundWorkerInfo, setFoundWorkerInfo] = useState<any>(null);
 
-  const handleCinChange = (cin: string) => {
+  const handleCinChange = async (cin: string) => {
     // Update CIN in form
     setFormData(prev => ({ ...prev, cin }));
 
@@ -888,6 +888,7 @@ export default function Workers() {
 
     // Only search if we're adding a new worker (not editing) and CIN is at least 6 characters
     if (!editingWorker && cin.length >= 6) {
+      // First check local database
       const existingWorker = allWorkers.find(w =>
         w.cin.toLowerCase() === cin.toLowerCase()
       );
@@ -903,7 +904,8 @@ export default function Workers() {
           farm: workerFarm,
           isCurrentFarm,
           isActive,
-          canReactivate: !isActive || !isCurrentFarm
+          canReactivate: !isActive || !isCurrentFarm,
+          source: 'local' // Mark as from local database
         });
 
         // Auto-fill form with existing worker data if worker can be reactivated
