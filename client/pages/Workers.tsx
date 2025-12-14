@@ -5,6 +5,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { useFirestore } from '@/hooks/useFirestore';
 import { syncRoomOccupancy } from '@/utils/roomOccupancySync';
 import { clearAllRoomOccupants, isDeleteAllWorkers } from '@/utils/clearAllRoomOccupants';
+import { searchWorkerInGoogleSheet, parseFrenchDate } from '@/utils/googleSheetLookup';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
