@@ -95,7 +95,8 @@ export const searchWorkerInGoogleSheet = async (
       matricule: String(row[0] || ''),
       nom_complet: String(row[2] || ''),
       cin: String(row[3] || ''),
-      date_entree: String(row[13] || ''), // Should be formatted as dd/MM/yyyy by Google Script
+      sexe: convertGenderCode(row[4] || ''), // Column E: H=homme, M=femme
+      date_entree: String(row[13] || ''), // ISO date format
     };
 
     // Validate the worker data
@@ -104,7 +105,13 @@ export const searchWorkerInGoogleSheet = async (
       return null;
     }
 
-    console.log('✅ Worker found:', worker);
+    console.log('✅ Worker found:', {
+      matricule: worker.matricule,
+      nom_complet: worker.nom_complet,
+      cin: worker.cin,
+      sexe: worker.sexe,
+      date_entree: worker.date_entree
+    });
     return worker;
   } catch (error) {
     console.error('❌ Error searching Google Sheet:', error);
