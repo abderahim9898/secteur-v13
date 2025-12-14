@@ -3447,16 +3447,22 @@ export default function Workers() {
                   />
                   {foundWorkerInfo && (
                     <div className={`mt-2 p-3 border rounded-md ${
-                      foundWorkerInfo.canReactivate
+                      foundWorkerInfo.source === 'google_sheet'
+                        ? 'bg-blue-50 border-blue-200'
+                        : foundWorkerInfo.canReactivate
                         ? 'bg-green-50 border-green-200'
                         : 'bg-yellow-50 border-yellow-200'
                     }`}>
                       <div className={`flex items-start space-x-2 text-sm ${
-                        foundWorkerInfo.canReactivate
+                        foundWorkerInfo.source === 'google_sheet'
+                          ? 'text-blue-700'
+                          : foundWorkerInfo.canReactivate
                           ? 'text-green-700'
                           : 'text-yellow-700'
                       }`}>
-                        {foundWorkerInfo.canReactivate ? (
+                        {foundWorkerInfo.source === 'google_sheet' ? (
+                          <Check className="mr-1 h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
+                        ) : foundWorkerInfo.canReactivate ? (
                           <Check className="mr-1 h-4 w-4 mt-0.5 flex-shrink-0" />
                         ) : (
                           <AlertTriangle className="mr-1 h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -3464,18 +3470,32 @@ export default function Workers() {
                         <div className="flex-1">
                           <div className="font-medium">
                             {foundWorkerInfo.worker.nom}
+                            {foundWorkerInfo.source === 'google_sheet' && (
+                              <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                                Google Sheets
+                              </span>
+                            )}
                           </div>
                           <div className="text-xs mt-1 space-y-1">
                             <div>CIN: {foundWorkerInfo.worker.cin}</div>
-                            <div>Téléphone: {foundWorkerInfo.worker.telephone || 'Non renseigné'}</div>
-                            <div>Statut: <span className={`font-medium ${
-                              foundWorkerInfo.isActive ? 'text-green-600' : 'text-gray-600'
-                            }`}>{foundWorkerInfo.isActive ? 'Actif' : 'Inactif'}</span></div>
-                            <div>Ferme: {foundWorkerInfo.farm?.nom || 'Non trouvée'}
-                              {foundWorkerInfo.isCurrentFarm && ' (votre ferme)'}
-                            </div>
+                            {foundWorkerInfo.worker.matricule && (
+                              <div>Matricule: {foundWorkerInfo.worker.matricule}</div>
+                            )}
+                            {foundWorkerInfo.worker.telephone && (
+                              <div>Téléphone: {foundWorkerInfo.worker.telephone}</div>
+                            )}
+                            {foundWorkerInfo.source === 'local' && (
+                              <>
+                                <div>Statut: <span className={`font-medium ${
+                                  foundWorkerInfo.isActive ? 'text-green-600' : 'text-gray-600'
+                                }`}>{foundWorkerInfo.isActive ? 'Actif' : 'Inactif'}</span></div>
+                                <div>Ferme: {foundWorkerInfo.farm?.nom || 'Non trouvée'}
+                                  {foundWorkerInfo.isCurrentFarm && ' (votre ferme)'}
+                                </div>
+                              </>
+                            )}
                             {foundWorkerInfo.worker.dateEntree && (
-                              <div>Dernière entrée: {new Date(foundWorkerInfo.worker.dateEntree).toLocaleDateString('fr-FR')}</div>
+                              <div>{foundWorkerInfo.source === 'google_sheet' ? 'Date d\'entrée' : 'Dernière entrée'}: {new Date(foundWorkerInfo.worker.dateEntree).toLocaleDateString('fr-FR')}</div>
                             )}
                             {foundWorkerInfo.worker.dateSortie && (
                               <div>Dernière sortie: {new Date(foundWorkerInfo.worker.dateSortie).toLocaleDateString('fr-FR')}</div>
