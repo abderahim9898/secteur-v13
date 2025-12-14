@@ -24,28 +24,46 @@ export const searchWorkerInGoogleSheet = async (
 
   try {
     console.log(`🔍 Searching Google Sheet for: ${searchValue}`);
-    
+    console.log(`📡 Using Google Script URL: ${GOOGLE_SCRIPT_URL}`);
+
     // Call the Google Script with the search parameter
-    const response = await fetch(
-      `${GOOGLE_SCRIPT_URL}?search=${encodeURIComponent(searchValue.trim())}`,
-      {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      }
-    );
+    // Using mode: 'no-cors' can help with CORS issues, but we won't be able to read the response
+    // So we'll try with normal CORS first
+    const url = `${GOOGLE_SCRIPT_URL}?search=${encodeURIComponent(searchValue.trim())}`;
+    console.log(`🌐 Fetching from: ${url}`);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    console.log(`📊 Response status: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
       console.error(`❌ Google Script returned status ${response.status}`);
       return null;
     }
 
-    const data = await response.json();
+    const contentType = response.headers.get('content-type');
+    console.log(`📝 Response content-type: ${contentType}`);
+
+    const text = await response.text();
+    console.log(`📄 Response text length: ${text.length} characters`);
+    console.log(`📄 Response preview: ${text.substring(0, 200)}`);
+
+    if (!text) {
+      console.error('Empty response from Google Script');
+      return null;
+    }
+
+    const data = JSON.parse(text);
+    console.log(`✅ Parsed JSON response, array length: ${Array.isArray(data) ? data.length : 'not an array'}`);
 
     // The response should contain matching rows
     if (!data || !Array.isArray(data) || data.length === 0) {
-      console.log('No workers found in Google Sheet');
+      console.log('⚠️ No workers found in Google Sheet');
       return null;
     }
 
@@ -53,9 +71,10 @@ export const searchWorkerInGoogleSheet = async (
     // We expect the first match to be the correct one
     // Columns: 0=matricule, 2=nom_complet, 3=cin, 13=date_entree
     const row = data[0];
-    
+
     if (!Array.isArray(row) || row.length < 14) {
-      console.error('Invalid row format from Google Script');
+      console.error('❌ Invalid row format from Google Script');
+      console.error(`Row type: ${typeof row}, length: ${Array.isArray(row) ? row.length : 'N/A'}`);
       return null;
     }
 
@@ -63,12 +82,12 @@ export const searchWorkerInGoogleSheet = async (
       matricule: String(row[0] || ''),
       nom_complet: String(row[2] || ''),
       cin: String(row[3] || ''),
-      date_entree: String(row[13] || ''), // Already formatted as dd/MM/yyyy by Google Script
+      date_entree: String(row[13] || ''), // Should be formatted as dd/MM/yyyy by Google Script
     };
 
     // Validate the worker data
     if (!worker.matricule && !worker.cin) {
-      console.error('Worker data missing matricule and CIN');
+      console.error('❌ Worker data missing matricule and CIN');
       return null;
     }
 
@@ -76,6 +95,13 @@ export const searchWorkerInGoogleSheet = async (
     return worker;
   } catch (error) {
     console.error('❌ Error searching Google Sheet:', error);
+    if (error instanceof TypeError) {
+      console.error('This is a CORS or network error. Possible causes:');
+      console.error('1. Google Script URL is wrong or not deployed');
+      console.error('2. CORS is blocked by browser');
+      console.error('3. Network connectivity issue');
+      console.error(`Current URL: ${GOOGLE_SCRIPT_URL}`);
+    }
     return null;
   }
 };
