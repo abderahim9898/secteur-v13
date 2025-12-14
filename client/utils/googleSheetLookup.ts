@@ -1,7 +1,7 @@
 // Google Sheets lookup for worker information
 // Fetches worker data from Google Sheet via Google Apps Script
 
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwWdJe14BQLOrmwbwerjU6HyGQh-G13nKS1g1JHBk6VY8-4BdE7VzkthtR1fBvD5M3s-g/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9HLiqYrDEV8yKeNji3UIFsm3DeeKgiAgBVygCOP7Vl2YG8VFeDUXQepfgcgYau8tHSg/exec';
 
 export interface GoogleSheetWorker {
   matricule: string;
