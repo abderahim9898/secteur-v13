@@ -942,6 +942,46 @@ export default function Workers() {
             setAutoFilledWorker(`${existingWorker.nom} (transfert depuis ${workerFarm?.nom})`);
           }
         }
+      } else {
+        // If not found locally, search in Google Sheet
+        try {
+          const googleWorker = await searchWorkerInGoogleSheet(cin);
+          if (googleWorker) {
+            // Found in Google Sheet - auto-fill form with Google data
+            const entryDate = parseFrenchDate(googleWorker.date_entree);
+
+            setFoundWorkerInfo({
+              worker: {
+                nom: googleWorker.nom_complet,
+                cin: googleWorker.cin,
+                matricule: googleWorker.matricule,
+                telephone: '',
+                sexe: '',
+                age: 0,
+                dateEntree: entryDate || new Date().toISOString().split('T')[0],
+                statut: 'actif',
+              },
+              source: 'google_sheet' // Mark as from Google Sheet
+            });
+
+            // Auto-fill form with Google Sheet data
+            setFormData(prev => ({
+              ...prev,
+              cin: googleWorker.cin,
+              nom: googleWorker.nom_complet,
+              matricule: googleWorker.matricule,
+              telephone: '',
+              dateEntree: entryDate || new Date().toISOString().split('T')[0],
+              statut: 'actif',
+              fermeId: user?.fermeId || '',
+            }));
+
+            setAutoFilledWorker(`${googleWorker.nom_complet} (depuis Google Sheets)`);
+          }
+        } catch (error) {
+          console.error('Error searching Google Sheet:', error);
+          // Silently fail - user can still manually enter data
+        }
       }
     }
   };
