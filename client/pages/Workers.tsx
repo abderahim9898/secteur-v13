@@ -986,6 +986,92 @@ export default function Workers() {
     }
   };
 
+  // Handle matricule change with Google Sheet lookup
+  const handleMatriculeChange = async (matricule: string) => {
+    // Update matricule in form
+    setFormData(prev => ({ ...prev, matricule }));
+
+    // Clear any previous errors and auto-fill indicators
+    setError('');
+    setAutoFilledWorker('');
+    setFoundWorkerInfo(null);
+
+    // Only search if we're adding a new worker (not editing) and matricule is at least 4 characters
+    if (!editingWorker && matricule.length >= 4) {
+      // First check local database
+      const existingWorker = allWorkers.find(w =>
+        (w.matricule || '').toLowerCase() === matricule.toLowerCase()
+      );
+
+      if (existingWorker) {
+        const workerFarm = fermes.find(f => f.id === existingWorker.fermeId);
+        const isCurrentFarm = existingWorker.fermeId === user?.fermeId;
+        const isActive = existingWorker.statut === 'actif';
+
+        setFoundWorkerInfo({
+          worker: existingWorker,
+          farm: workerFarm,
+          isCurrentFarm,
+          isActive,
+          canReactivate: !isActive || !isCurrentFarm,
+          source: 'local'
+        });
+
+        if (!isActive || !isCurrentFarm) {
+          setFormData(prev => ({
+            ...prev,
+            matricule: matricule,
+            nom: existingWorker.nom,
+            cin: existingWorker.cin,
+            telephone: existingWorker.telephone,
+            dateEntree: existingWorker.dateEntree || new Date().toISOString().split('T')[0],
+            statut: 'actif',
+            fermeId: user?.fermeId || existingWorker.fermeId,
+          }));
+
+          setAutoFilledWorker(`${existingWorker.nom} (réactivation)`);
+        }
+      } else {
+        // If not found locally, search in Google Sheet
+        try {
+          const googleWorker = await searchWorkerInGoogleSheet(matricule);
+          if (googleWorker) {
+            const entryDate = parseFrenchDate(googleWorker.date_entree);
+
+            setFoundWorkerInfo({
+              worker: {
+                nom: googleWorker.nom_complet,
+                cin: googleWorker.cin,
+                matricule: googleWorker.matricule,
+                telephone: '',
+                sexe: '',
+                age: 0,
+                dateEntree: entryDate || new Date().toISOString().split('T')[0],
+                statut: 'actif',
+              },
+              source: 'google_sheet'
+            });
+
+            setFormData(prev => ({
+              ...prev,
+              matricule: googleWorker.matricule,
+              nom: googleWorker.nom_complet,
+              cin: googleWorker.cin,
+              telephone: '',
+              dateEntree: entryDate || new Date().toISOString().split('T')[0],
+              statut: 'actif',
+              fermeId: user?.fermeId || '',
+            }));
+
+            setAutoFilledWorker(`${googleWorker.nom_complet} (depuis Google Sheets)`);
+          }
+        } catch (error) {
+          console.error('Error searching Google Sheet:', error);
+        }
+      }
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
