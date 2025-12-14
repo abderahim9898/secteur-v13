@@ -3502,11 +3502,15 @@ export default function Workers() {
                             )}
                           </div>
                           <div className={`mt-2 text-xs font-medium ${
-                            foundWorkerInfo.canReactivate
+                            foundWorkerInfo.source === 'google_sheet'
+                              ? 'text-blue-600'
+                              : foundWorkerInfo.canReactivate
                               ? 'text-green-600'
                               : 'text-yellow-600'
                           }`}>
-                            {foundWorkerInfo.canReactivate ? (
+                            {foundWorkerInfo.source === 'google_sheet' ? (
+                              '✅ Données récupérées depuis Google Sheets - Veuillez remplir les informations manquantes'
+                            ) : foundWorkerInfo.canReactivate ? (
                               foundWorkerInfo.isActive ? (
                                 '✅ Données auto-remplies - Prêt pour transfert vers votre ferme'
                               ) : (
