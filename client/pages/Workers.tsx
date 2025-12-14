@@ -3497,6 +3497,9 @@ export default function Workers() {
                             {foundWorkerInfo.worker.matricule && (
                               <div>Matricule: {foundWorkerInfo.worker.matricule}</div>
                             )}
+                            {foundWorkerInfo.worker.sexe && (
+                              <div>Sexe: <span className="font-medium capitalize">{foundWorkerInfo.worker.sexe}</span></div>
+                            )}
                             {foundWorkerInfo.worker.telephone && (
                               <div>Téléphone: {foundWorkerInfo.worker.telephone}</div>
                             )}
