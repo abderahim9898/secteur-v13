@@ -949,6 +949,13 @@ export default function Workers() {
           if (googleWorker) {
             // Found in Google Sheet - auto-fill form with Google data
             const entryDate = parseFrenchDate(googleWorker.date_entree);
+            console.log('📝 Google Sheet worker found:', {
+              nom: googleWorker.nom_complet,
+              raw_date: googleWorker.date_entree,
+              parsed_date: entryDate
+            });
+
+            const finalDateEntree = entryDate || new Date().toISOString().split('T')[0];
 
             setFoundWorkerInfo({
               worker: {
@@ -958,7 +965,7 @@ export default function Workers() {
                 telephone: '',
                 sexe: '',
                 age: 0,
-                dateEntree: entryDate || new Date().toISOString().split('T')[0],
+                dateEntree: finalDateEntree,
                 statut: 'actif',
               },
               source: 'google_sheet' // Mark as from Google Sheet
@@ -971,7 +978,7 @@ export default function Workers() {
               nom: googleWorker.nom_complet,
               matricule: googleWorker.matricule,
               telephone: '',
-              dateEntree: entryDate || new Date().toISOString().split('T')[0],
+              dateEntree: finalDateEntree,
               statut: 'actif',
               fermeId: user?.fermeId || '',
             }));
