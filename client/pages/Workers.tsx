@@ -3422,7 +3422,7 @@ export default function Workers() {
                   <Input
                     id="matricule"
                     value={formData.matricule || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, matricule: e.target.value }))}
+                    onChange={(e) => handleMatriculeChange(e.target.value)}
                     placeholder="Ex: 64045"
                   />
                 </div>
