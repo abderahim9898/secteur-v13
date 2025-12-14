@@ -28,8 +28,19 @@ console.log('Initializing Firebase with config:', {
   apiKey: firebaseConfig.apiKey.substring(0, 10) + '...'
 });
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase - prevent duplicate app error
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+} catch (error: any) {
+  if (error.code === 'app/duplicate-app') {
+    // If app already exists, get the existing instance
+    const { getApp } = await import('firebase/app');
+    app = getApp();
+  } else {
+    throw error;
+  }
+}
 
 // Firebase uses its own networking - don't intercept fetch
 
