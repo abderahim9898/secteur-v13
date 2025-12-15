@@ -3885,15 +3885,11 @@ export default function Statistics() {
                           data={Object.entries(statistics.exitReasons)
                             .sort(([,a], [,b]) => b - a)
                             .slice(0, 10)
-                            .map(([reason, count], index) => ({
+                            .map(([reason, count]) => ({
                               name: getMotifLabel(reason),
-                              value: count,
-                              fill: [
-                                '#EF4444', '#F97316', '#EAB308', '#22C55E', '#3B82F6',
-                                '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#F59E0B'
-                              ][index % 10]
+                              value: count
                             }))}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                          margin={{ top: 20, right: 30, left: 0, bottom: 80 }}
                         >
                           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                           <XAxis
@@ -3901,22 +3897,19 @@ export default function Statistics() {
                             angle={-45}
                             textAnchor="end"
                             height={100}
-                            tick={{ fontSize: 12 }}
+                            tick={{ fontSize: 11 }}
+                            interval={0}
                           />
                           <YAxis
-                            label={{ value: 'Nombre de sorties', angle: -90, position: 'insideLeft' }}
                             tick={{ fontSize: 12 }}
                           />
                           <Tooltip
                             cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
-                            formatter={(value) => [`${value} sorties`, 'Nombre']}
-                            labelFormatter={(label) => `${label}`}
+                            formatter={(value) => `${value} sorties`}
                             contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}
                           />
-                          <Legend />
                           <Bar
                             dataKey="value"
-                            name="Nombre de sorties"
                             fill="#EF4444"
                             radius={[8, 8, 0, 0]}
                           >
