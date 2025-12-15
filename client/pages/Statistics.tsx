@@ -177,11 +177,30 @@ export default function Statistics() {
     return months[parseInt(monthNum)];
   };
 
-  // Filter data based on user role, selected ferme, and gender
+  // Filter data based on user role, farm group, selected ferme, and gender
   const workers = useMemo(() => {
-    let filteredWorkers = selectedFerme === 'all'
-      ? (isSuperAdmin || hasAllFarmsAccess ? allWorkers : allWorkers.filter(w => w.fermeId === user?.fermeId))
-      : allWorkers.filter(w => w.fermeId === selectedFerme);
+    let filteredWorkers = allWorkers;
+
+    // First filter by farm group
+    if (farmGroup === 'almacen') {
+      const almacenFermeIds = fermes
+        .filter(f => f.nom.toLowerCase().includes('almacen'))
+        .map(f => f.id);
+      filteredWorkers = filteredWorkers.filter(w => almacenFermeIds.includes(w.fermeId));
+    } else if (farmGroup === 'campo') {
+      const campoFermeIds = fermes
+        .filter(f => !f.nom.toLowerCase().includes('almacen'))
+        .map(f => f.id);
+      filteredWorkers = filteredWorkers.filter(w => campoFermeIds.includes(w.fermeId));
+    }
+
+    // Then filter by specific ferme if selected
+    if (selectedFerme !== 'all') {
+      filteredWorkers = filteredWorkers.filter(w => w.fermeId === selectedFerme);
+    } else if (!isSuperAdmin && !hasAllFarmsAccess) {
+      // For non-admin users, only show their own farm
+      filteredWorkers = filteredWorkers.filter(w => w.fermeId === user?.fermeId);
+    }
 
     // Apply gender filter
     if (selectedGender !== 'all') {
@@ -189,7 +208,7 @@ export default function Statistics() {
     }
 
     return filteredWorkers;
-  }, [allWorkers, selectedFerme, selectedGender, isSuperAdmin, hasAllFarmsAccess, user?.fermeId]);
+  }, [allWorkers, farmGroup, fermes, selectedFerme, selectedGender, isSuperAdmin, hasAllFarmsAccess, user?.fermeId]);
 
   const rooms = selectedFerme === 'all'
     ? (isSuperAdmin || hasAllFarmsAccess ? allRooms : allRooms.filter(r => r.fermeId === user?.fermeId))
