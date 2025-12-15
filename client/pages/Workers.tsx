@@ -5,6 +5,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { useFirestore } from '@/hooks/useFirestore';
 import { syncRoomOccupancy } from '@/utils/roomOccupancySync';
 import { clearAllRoomOccupants, isDeleteAllWorkers } from '@/utils/clearAllRoomOccupants';
+import { searchWorkerInGoogleSheet, parseFrenchDate } from '@/utils/googleSheetLookup';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -876,7 +877,7 @@ export default function Workers() {
   // Enhanced CIN lookup with comprehensive worker information
   const [foundWorkerInfo, setFoundWorkerInfo] = useState<any>(null);
 
-  const handleCinChange = (cin: string) => {
+  const handleCinChange = async (cin: string) => {
     // Update CIN in form
     setFormData(prev => ({ ...prev, cin }));
 
@@ -887,6 +888,7 @@ export default function Workers() {
 
     // Only search if we're adding a new worker (not editing) and CIN is at least 6 characters
     if (!editingWorker && cin.length >= 6) {
+      // First check local database
       const existingWorker = allWorkers.find(w =>
         w.cin.toLowerCase() === cin.toLowerCase()
       );
@@ -902,7 +904,8 @@ export default function Workers() {
           farm: workerFarm,
           isCurrentFarm,
           isActive,
-          canReactivate: !isActive || !isCurrentFarm
+          canReactivate: !isActive || !isCurrentFarm,
+          source: 'local' // Mark as from local database
         });
 
         // Auto-fill form with existing worker data if worker can be reactivated
@@ -938,6 +941,148 @@ export default function Workers() {
           } else {
             setAutoFilledWorker(`${existingWorker.nom} (transfert depuis ${workerFarm?.nom})`);
           }
+        }
+      } else {
+        // If not found locally, search in Google Sheet
+        try {
+          const googleWorker = await searchWorkerInGoogleSheet(cin);
+          if (googleWorker) {
+            // Found in Google Sheet - auto-fill form with Google data
+            const entryDate = parseFrenchDate(googleWorker.date_entree);
+            console.log('📝 Google Sheet worker found:', {
+              nom: googleWorker.nom_complet,
+              raw_date: googleWorker.date_entree,
+              parsed_date: entryDate
+            });
+
+            const finalDateEntree = entryDate || new Date().toISOString().split('T')[0];
+
+            setFoundWorkerInfo({
+              worker: {
+                nom: googleWorker.nom_complet,
+                cin: googleWorker.cin,
+                matricule: googleWorker.matricule,
+                telephone: '',
+                sexe: googleWorker.sexe,
+                age: 0,
+                dateEntree: finalDateEntree,
+                statut: 'actif',
+              },
+              source: 'google_sheet' // Mark as from Google Sheet
+            });
+
+            // Auto-fill form with Google Sheet data
+            setFormData(prev => ({
+              ...prev,
+              cin: googleWorker.cin,
+              nom: googleWorker.nom_complet,
+              matricule: googleWorker.matricule,
+              telephone: '',
+              sexe: googleWorker.sexe,
+              dateEntree: finalDateEntree,
+              statut: 'actif',
+              fermeId: user?.fermeId || '',
+            }));
+
+            setAutoFilledWorker(`${googleWorker.nom_complet} (depuis Google Sheets)`);
+          }
+        } catch (error) {
+          console.error('Error searching Google Sheet:', error);
+          // Silently fail - user can still manually enter data
+        }
+      }
+    }
+  };
+
+  // Handle matricule change with Google Sheet lookup
+  const handleMatriculeChange = async (matricule: string) => {
+    // Update matricule in form
+    setFormData(prev => ({ ...prev, matricule }));
+
+    // Clear any previous errors and auto-fill indicators
+    setError('');
+    setAutoFilledWorker('');
+    setFoundWorkerInfo(null);
+
+    // Only search if we're adding a new worker (not editing) and matricule is at least 4 characters
+    if (!editingWorker && matricule.length >= 4) {
+      // First check local database
+      const existingWorker = allWorkers.find(w =>
+        (w.matricule || '').toLowerCase() === matricule.toLowerCase()
+      );
+
+      if (existingWorker) {
+        const workerFarm = fermes.find(f => f.id === existingWorker.fermeId);
+        const isCurrentFarm = existingWorker.fermeId === user?.fermeId;
+        const isActive = existingWorker.statut === 'actif';
+
+        setFoundWorkerInfo({
+          worker: existingWorker,
+          farm: workerFarm,
+          isCurrentFarm,
+          isActive,
+          canReactivate: !isActive || !isCurrentFarm,
+          source: 'local'
+        });
+
+        if (!isActive || !isCurrentFarm) {
+          setFormData(prev => ({
+            ...prev,
+            matricule: matricule,
+            nom: existingWorker.nom,
+            cin: existingWorker.cin,
+            telephone: existingWorker.telephone,
+            dateEntree: existingWorker.dateEntree || new Date().toISOString().split('T')[0],
+            statut: 'actif',
+            fermeId: user?.fermeId || existingWorker.fermeId,
+          }));
+
+          setAutoFilledWorker(`${existingWorker.nom} (réactivation)`);
+        }
+      } else {
+        // If not found locally, search in Google Sheet
+        try {
+          const googleWorker = await searchWorkerInGoogleSheet(matricule);
+          if (googleWorker) {
+            const entryDate = parseFrenchDate(googleWorker.date_entree);
+            console.log('📝 Google Sheet worker found by matricule:', {
+              nom: googleWorker.nom_complet,
+              raw_date: googleWorker.date_entree,
+              parsed_date: entryDate
+            });
+
+            const finalDateEntree = entryDate || new Date().toISOString().split('T')[0];
+
+            setFoundWorkerInfo({
+              worker: {
+                nom: googleWorker.nom_complet,
+                cin: googleWorker.cin,
+                matricule: googleWorker.matricule,
+                telephone: '',
+                sexe: googleWorker.sexe,
+                age: 0,
+                dateEntree: finalDateEntree,
+                statut: 'actif',
+              },
+              source: 'google_sheet'
+            });
+
+            setFormData(prev => ({
+              ...prev,
+              matricule: googleWorker.matricule,
+              nom: googleWorker.nom_complet,
+              cin: googleWorker.cin,
+              telephone: '',
+              sexe: googleWorker.sexe,
+              dateEntree: finalDateEntree,
+              statut: 'actif',
+              fermeId: user?.fermeId || '',
+            }));
+
+            setAutoFilledWorker(`${googleWorker.nom_complet} (depuis Google Sheets)`);
+          }
+        } catch (error) {
+          console.error('Error searching Google Sheet:', error);
         }
       }
     }
@@ -3293,7 +3438,7 @@ export default function Workers() {
                   <Input
                     id="matricule"
                     value={formData.matricule || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, matricule: e.target.value }))}
+                    onChange={(e) => handleMatriculeChange(e.target.value)}
                     placeholder="Ex: 64045"
                   />
                 </div>
@@ -3318,16 +3463,22 @@ export default function Workers() {
                   />
                   {foundWorkerInfo && (
                     <div className={`mt-2 p-3 border rounded-md ${
-                      foundWorkerInfo.canReactivate
+                      foundWorkerInfo.source === 'google_sheet'
+                        ? 'bg-blue-50 border-blue-200'
+                        : foundWorkerInfo.canReactivate
                         ? 'bg-green-50 border-green-200'
                         : 'bg-yellow-50 border-yellow-200'
                     }`}>
                       <div className={`flex items-start space-x-2 text-sm ${
-                        foundWorkerInfo.canReactivate
+                        foundWorkerInfo.source === 'google_sheet'
+                          ? 'text-blue-700'
+                          : foundWorkerInfo.canReactivate
                           ? 'text-green-700'
                           : 'text-yellow-700'
                       }`}>
-                        {foundWorkerInfo.canReactivate ? (
+                        {foundWorkerInfo.source === 'google_sheet' ? (
+                          <Check className="mr-1 h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
+                        ) : foundWorkerInfo.canReactivate ? (
                           <Check className="mr-1 h-4 w-4 mt-0.5 flex-shrink-0" />
                         ) : (
                           <AlertTriangle className="mr-1 h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -3335,29 +3486,50 @@ export default function Workers() {
                         <div className="flex-1">
                           <div className="font-medium">
                             {foundWorkerInfo.worker.nom}
+                            {foundWorkerInfo.source === 'google_sheet' && (
+                              <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                                Google Sheets
+                              </span>
+                            )}
                           </div>
                           <div className="text-xs mt-1 space-y-1">
                             <div>CIN: {foundWorkerInfo.worker.cin}</div>
-                            <div>Téléphone: {foundWorkerInfo.worker.telephone || 'Non renseigné'}</div>
-                            <div>Statut: <span className={`font-medium ${
-                              foundWorkerInfo.isActive ? 'text-green-600' : 'text-gray-600'
-                            }`}>{foundWorkerInfo.isActive ? 'Actif' : 'Inactif'}</span></div>
-                            <div>Ferme: {foundWorkerInfo.farm?.nom || 'Non trouvée'}
-                              {foundWorkerInfo.isCurrentFarm && ' (votre ferme)'}
-                            </div>
+                            {foundWorkerInfo.worker.matricule && (
+                              <div>Matricule: {foundWorkerInfo.worker.matricule}</div>
+                            )}
+                            {foundWorkerInfo.worker.sexe && (
+                              <div>Sexe: <span className="font-medium capitalize">{foundWorkerInfo.worker.sexe}</span></div>
+                            )}
+                            {foundWorkerInfo.worker.telephone && (
+                              <div>Téléphone: {foundWorkerInfo.worker.telephone}</div>
+                            )}
+                            {foundWorkerInfo.source === 'local' && (
+                              <>
+                                <div>Statut: <span className={`font-medium ${
+                                  foundWorkerInfo.isActive ? 'text-green-600' : 'text-gray-600'
+                                }`}>{foundWorkerInfo.isActive ? 'Actif' : 'Inactif'}</span></div>
+                                <div>Ferme: {foundWorkerInfo.farm?.nom || 'Non trouvée'}
+                                  {foundWorkerInfo.isCurrentFarm && ' (votre ferme)'}
+                                </div>
+                              </>
+                            )}
                             {foundWorkerInfo.worker.dateEntree && (
-                              <div>Dernière entrée: {new Date(foundWorkerInfo.worker.dateEntree).toLocaleDateString('fr-FR')}</div>
+                              <div>{foundWorkerInfo.source === 'google_sheet' ? 'Date d\'entrée' : 'Dernière entrée'}: {new Date(foundWorkerInfo.worker.dateEntree).toLocaleDateString('fr-FR')}</div>
                             )}
                             {foundWorkerInfo.worker.dateSortie && (
                               <div>Dernière sortie: {new Date(foundWorkerInfo.worker.dateSortie).toLocaleDateString('fr-FR')}</div>
                             )}
                           </div>
                           <div className={`mt-2 text-xs font-medium ${
-                            foundWorkerInfo.canReactivate
+                            foundWorkerInfo.source === 'google_sheet'
+                              ? 'text-blue-600'
+                              : foundWorkerInfo.canReactivate
                               ? 'text-green-600'
                               : 'text-yellow-600'
                           }`}>
-                            {foundWorkerInfo.canReactivate ? (
+                            {foundWorkerInfo.source === 'google_sheet' ? (
+                              '✅ Données récupérées depuis Google Sheets - Veuillez remplir les informations manquantes'
+                            ) : foundWorkerInfo.canReactivate ? (
                               foundWorkerInfo.isActive ? (
                                 '✅ Données auto-remplies - Prêt pour transfert vers votre ferme'
                               ) : (

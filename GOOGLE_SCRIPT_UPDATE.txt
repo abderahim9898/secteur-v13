@@ -1,0 +1,47 @@
+// GOOGLE APPS SCRIPT - Replace your current doGet() with this code:
+
+function doGet(e) {
+  const spreadsheetId = '1vBU1aTBhnfKaC1D_HMu6bijbxjwVBH4hvPg9DksqcOk';
+  const sheetName = 'R BASE';
+  const sheet = SpreadsheetApp.openById(spreadsheetId).getSheetByName(sheetName);
+  const data = sheet.getDataRange().getValues();
+
+  // Get search parameter (matricule or CIN)
+  const searchValue = e.parameter.search ? e.parameter.search.toLowerCase().trim() : null;
+
+  // Morocco timezone: UTC+1
+  const moroccoCacheKey = 'GMT+1';
+
+  // Convert dates to dd/MM/yyyy format and filter if search is provided
+  const formattedData = data
+    .map(row => {
+      return row.map(cell => {
+        if (cell instanceof Date) {
+          // Format date as dd/MM/yyyy in Morocco timezone (GMT+1)
+          // This ensures Nov 30 at 11 PM UTC = Dec 1 at 12 AM Morocco time displays as 01/12/2025
+          return Utilities.formatDate(cell, moroccoCacheKey, "dd/MM/yyyy");
+        }
+        return cell;
+      });
+    })
+    .filter(row => {
+      // If no search value, return all rows
+      if (!searchValue) {
+        return true;
+      }
+
+      // Search columns: matricule (col 0) or CIN (col 3)
+      const matricule = String(row[0] || '').toLowerCase();
+      const cin = String(row[3] || '').toLowerCase();
+
+      // Return row if either matricule or CIN matches the search value
+      return matricule.includes(searchValue) || cin.includes(searchValue);
+    });
+
+  // Convert to JSON
+  const jsonData = JSON.stringify(formattedData);
+
+  return ContentService
+    .createTextOutput(jsonData)
+    .setMimeType(ContentService.MimeType.JSON);
+}

@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import {
   initializeFirestore,
@@ -28,8 +28,18 @@ console.log('Initializing Firebase with config:', {
   apiKey: firebaseConfig.apiKey.substring(0, 10) + '...'
 });
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase - prevent duplicate app error
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+} catch (error: any) {
+  if (error.code === 'app/duplicate-app') {
+    // If app already exists, get the existing instance
+    app = getApp();
+  } else {
+    throw error;
+  }
+}
 
 // Firebase uses its own networking - don't intercept fetch
 
@@ -48,7 +58,7 @@ export const db = initializeFirestore(app, {
 
 // Test Firebase connectivity with retry logic
 export const testFirebaseConnection = async (retryCount = 0): Promise<{ success: boolean; error?: string }> => {
-  const maxRetries = 3; // Increased retries for unavailable errors
+  const maxRetries = 3;
   try {
     if (retryCount === 0) {
       console.log(`Testing Firebase connection...`);
@@ -59,15 +69,23 @@ export const testFirebaseConnection = async (retryCount = 0): Promise<{ success:
       return { success: false, error: 'Device is offline' };
     }
 
-    // Skip the aggressive network test to avoid unnecessary fetch requests
-    // that might be causing the errors
+    // Get current auth state
+    const currentUser = auth.currentUser;
 
-    // Test Firestore connection using a valid collection name
+    // If no user is authenticated, perform a lighter connectivity check
+    if (!currentUser) {
+      console.log('No authenticated user - performing lightweight connectivity check');
+      // For unauthenticated users, just verify the Firebase app is initialized
+      // and network is available
+      return { success: true };
+    }
+
+    // For authenticated users, test actual Firestore connectivity
     const testDoc = doc(db, 'app_config', 'connection_test');
 
-    // Longer timeout to reduce false negatives
+    // Extended timeout for deployed environments (30 seconds)
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Connection timeout')), 10000); // 10 seconds
+      setTimeout(() => reject(new Error('Connection timeout')), 30000);
     });
 
     const connectionPromise = getDoc(testDoc);
@@ -79,9 +97,6 @@ export const testFirebaseConnection = async (retryCount = 0): Promise<{ success:
     // Only log errors on first attempt to reduce noise
     if (retryCount === 0) {
       console.error('Firebase connection test failed:', error);
-    }
-    // Only show detailed error info on first attempt
-    if (retryCount === 0) {
       console.error('Error details:', {
         code: error.code,
         message: error.message,
@@ -115,9 +130,8 @@ export const testFirebaseConnection = async (retryCount = 0): Promise<{ success:
     if (error.code) {
       errorMessage = `Firebase error: ${error.code}`;
     } else if (error.message?.includes('timeout')) {
-      errorMessage = 'Connection timeout - check your network';
+      errorMessage = 'Connection timeout - server may be slow, retrying...';
     } else if (error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) {
-      // Don't log verbose messages for common network issues
       if (retryCount === 0) {
         console.warn('Network connectivity issue detected');
       }
@@ -126,12 +140,13 @@ export const testFirebaseConnection = async (retryCount = 0): Promise<{ success:
       errorMessage = 'Network error - try refreshing the page';
     }
 
-    // Retry on fetch failures (transient network issues) but with longer delay
-    if ((error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) && retryCount < maxRetries) {
+    // Retry on timeout and fetch failures with exponential backoff
+    if ((error.message?.includes('timeout') || error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) && retryCount < maxRetries) {
       if (retryCount === 0) {
-        console.log(`Retrying connection test...`);
+        console.log(`Retrying connection test... (attempt ${retryCount + 2}/${maxRetries + 1})`);
       }
-      await new Promise(resolve => setTimeout(resolve, 3000)); // Longer delay
+      const delay = 2000 * Math.pow(2, retryCount); // Exponential backoff: 2s, 4s, 8s
+      await new Promise(resolve => setTimeout(resolve, delay));
       return testFirebaseConnection(retryCount + 1);
     }
 

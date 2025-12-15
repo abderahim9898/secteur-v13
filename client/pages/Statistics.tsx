@@ -122,7 +122,9 @@ export default function Statistics() {
   const { data: stockTransfers } = useFirestore<StockTransfer>('stock_transfers');
   const { supervisors } = useSupervisors();
   
+  const [farmGroup, setFarmGroup] = useState<'all' | 'campo' | 'almacen'>('all');
   const [selectedFerme, setSelectedFerme] = useState('all');
+  const [selectedFermes, setSelectedFermes] = useState<string[]>([]);
   const [timeRange, setTimeRange] = useState('month');
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
@@ -155,18 +157,50 @@ export default function Statistics() {
     };
   }, []);
 
+  // Helper function to categorize farms by group
+  const getFilteredFermesByGroup = (group: 'all' | 'campo' | 'almacen') => {
+    if (group === 'all') return fermes;
+    if (group === 'almacen') {
+      return fermes.filter(f => f.nom.toLowerCase().includes('almacen'));
+    }
+    // Campo: all other farms (not Almacen)
+    return fermes.filter(f => !f.nom.toLowerCase().includes('almacen'));
+  };
+
+  // Get the currently filtered farms based on group selection
+  const groupedFermes = getFilteredFermesByGroup(farmGroup);
+
   // Helper function to get month name
   const getMonthName = (monthNum: string) => {
-    const months = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+    const months = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
                    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
     return months[parseInt(monthNum)];
   };
 
-  // Filter data based on user role, selected ferme, and gender
+  // Filter data based on user role, farm group, selected ferme, and gender
   const workers = useMemo(() => {
-    let filteredWorkers = selectedFerme === 'all'
-      ? (isSuperAdmin || hasAllFarmsAccess ? allWorkers : allWorkers.filter(w => w.fermeId === user?.fermeId))
-      : allWorkers.filter(w => w.fermeId === selectedFerme);
+    let filteredWorkers = allWorkers;
+
+    // First filter by farm group
+    if (farmGroup === 'almacen') {
+      const almacenFermeIds = fermes
+        .filter(f => f.nom.toLowerCase().includes('almacen'))
+        .map(f => f.id);
+      filteredWorkers = filteredWorkers.filter(w => almacenFermeIds.includes(w.fermeId));
+    } else if (farmGroup === 'campo') {
+      const campoFermeIds = fermes
+        .filter(f => !f.nom.toLowerCase().includes('almacen'))
+        .map(f => f.id);
+      filteredWorkers = filteredWorkers.filter(w => campoFermeIds.includes(w.fermeId));
+    }
+
+    // Then filter by specific ferme if selected
+    if (selectedFerme !== 'all') {
+      filteredWorkers = filteredWorkers.filter(w => w.fermeId === selectedFerme);
+    } else if (!isSuperAdmin && !hasAllFarmsAccess) {
+      // For non-admin users, only show their own farm
+      filteredWorkers = filteredWorkers.filter(w => w.fermeId === user?.fermeId);
+    }
 
     // Apply gender filter
     if (selectedGender !== 'all') {
@@ -174,11 +208,34 @@ export default function Statistics() {
     }
 
     return filteredWorkers;
-  }, [allWorkers, selectedFerme, selectedGender, isSuperAdmin, hasAllFarmsAccess, user?.fermeId]);
+  }, [allWorkers, farmGroup, fermes, selectedFerme, selectedGender, isSuperAdmin, hasAllFarmsAccess, user?.fermeId]);
 
-  const rooms = selectedFerme === 'all'
-    ? (isSuperAdmin || hasAllFarmsAccess ? allRooms : allRooms.filter(r => r.fermeId === user?.fermeId))
-    : allRooms.filter(r => r.fermeId === selectedFerme);
+  // Filter rooms based on farm group and selected ferme
+  const rooms = useMemo(() => {
+    let filteredRooms = allRooms;
+
+    // Filter by farm group
+    if (farmGroup === 'almacen') {
+      const almacenFermeIds = fermes
+        .filter(f => f.nom.toLowerCase().includes('almacen'))
+        .map(f => f.id);
+      filteredRooms = filteredRooms.filter(r => almacenFermeIds.includes(r.fermeId));
+    } else if (farmGroup === 'campo') {
+      const campoFermeIds = fermes
+        .filter(f => !f.nom.toLowerCase().includes('almacen'))
+        .map(f => f.id);
+      filteredRooms = filteredRooms.filter(r => campoFermeIds.includes(r.fermeId));
+    }
+
+    // Filter by specific ferme
+    if (selectedFerme !== 'all') {
+      filteredRooms = filteredRooms.filter(r => r.fermeId === selectedFerme);
+    } else if (!isSuperAdmin && !hasAllFarmsAccess) {
+      filteredRooms = filteredRooms.filter(r => r.fermeId === user?.fermeId);
+    }
+
+    return filteredRooms;
+  }, [allRooms, farmGroup, fermes, selectedFerme, isSuperAdmin, hasAllFarmsAccess, user?.fermeId]);
 
   const getPeriodBounds = useMemo(() => {
     const now = new Date();
@@ -3374,18 +3431,61 @@ export default function Statistics() {
           <CardContent className="py-2 px-3 sm:py-3 sm:px-4">
             <div className="space-y-3 sm:space-y-4">
 
+              {/* Farm Group Filter - Campo vs Almacen */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-slate-600">Groupes:</span>
+                <div className="flex gap-2">
+                  <Button
+                    variant={farmGroup === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setFarmGroup('all');
+                      setSelectedFerme('all');
+                      setSelectedFermes([]);
+                    }}
+                    className={farmGroup === 'all' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
+                  >
+                    Tous les groupes
+                  </Button>
+                  <Button
+                    variant={farmGroup === 'campo' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setFarmGroup('campo');
+                      setSelectedFerme('all');
+                      setSelectedFermes([]);
+                    }}
+                    className={farmGroup === 'campo' ? 'bg-green-600 hover:bg-green-700' : ''}
+                  >
+                    Campo
+                  </Button>
+                  <Button
+                    variant={farmGroup === 'almacen' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setFarmGroup('almacen');
+                      setSelectedFerme('all');
+                      setSelectedFermes([]);
+                    }}
+                    className={farmGroup === 'almacen' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                  >
+                    Almacen
+                  </Button>
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 overflow-x-auto">
                 {(isSuperAdmin || hasAllFarmsAccess) && (
                   <div className="flex items-center space-x-2 flex-shrink-0 w-full sm:w-auto">
                     <Building2 className="h-4 w-4 text-slate-600" />
                     <Select value={selectedFerme} onValueChange={setSelectedFerme}>
   <SelectTrigger>
-    <SelectValue placeholder="Toutes les fermes" />
+    <SelectValue placeholder="Sélectionner une ferme" />
   </SelectTrigger>
   <SelectContent>
-    <SelectItem value="all">Toutes les fermes</SelectItem>
-    {[...fermes] // ننسخ المصفوفة عشان ما نغير الأصلية
-      .sort((a, b) => a.nom.localeCompare(b.nom)) // ترتيب أبجدي A → Z
+    <SelectItem value="all">Toutes les fermes du groupe</SelectItem>
+    {[...groupedFermes]
+      .sort((a, b) => a.nom.localeCompare(b.nom))
       .map((ferme) => (
         <SelectItem key={ferme.id} value={ferme.id}>
           {ferme.nom}
@@ -3873,48 +3973,45 @@ export default function Statistics() {
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <PieChart className="mr-2 h-5 w-5 text-red-600" />
-                    Motifs de Sortie
+                    <BarChartIcon className="mr-2 h-5 w-5 text-red-600" />
+                    Motifs de Sortie (Top 10)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {Object.keys(statistics.exitReasons).length > 0 ? (
-                    <div id="exit-reasons-chart" className="h-64">
-                      <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={240}>
-                        <RechartsPieChart>
-                          <Pie
-                            data={Object.entries(statistics.exitReasons)
-                              .sort(([,a], [,b]) => b - a)
-                              .map(([reason, count], index) => ({
-                                name: getMotifLabel(reason),
-                                value: count,
-                                fill: [
-                                  '#EF4444', '#F97316', '#EAB308', '#22C55E', '#3B82F6',
-                                  '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#F59E0B'
-                                ][index % 10]
-                              }))}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ name, percent }) => percent > 5 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="value"
-                          >
-                            {Object.entries(statistics.exitReasons).map((_, index) => (
-                              <Cell key={`cell-${index}`} fill={[
-                                '#EF4444', '#F97316', '#EAB308', '#22C55E', '#3B82F6',
-                                '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#F59E0B'
-                              ][index % 10]} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            formatter={(value, name) => [`${value} departs`, name]}
-                            labelFormatter={(name) => `Motif: ${name}`}
-                          />
-                          <Legend />
-                        </RechartsPieChart>
-                      </ResponsiveContainer>
+                    <div id="exit-reasons-chart" className="space-y-4">
+                      <div className="grid grid-cols-1 gap-2">
+                        {Object.entries(statistics.exitReasons)
+                          .sort(([,a], [,b]) => b - a)
+                          .slice(0, 10)
+                          .map(([reason, count], index) => {
+                            const maxCount = Math.max(...Object.values(statistics.exitReasons));
+                            const percentage = Math.round((count / maxCount) * 100);
+                            const colors = [
+                              'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-blue-500',
+                              'bg-purple-500', 'bg-pink-500', 'bg-cyan-500', 'bg-lime-500', 'bg-amber-500'
+                            ];
+
+                            return (
+                              <div key={`${reason}-${index}`} className="space-y-1">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-medium text-slate-700 truncate">
+                                    {index + 1}. {getMotifLabel(reason)}
+                                  </span>
+                                  <span className="text-sm font-semibold text-slate-900">
+                                    {count} sortie{count > 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                                  <div
+                                    className={`h-full ${colors[index % 10]} rounded-full transition-all`}
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
                     </div>
                   ) : (
                     <div className="text-center text-slate-500 py-8">
@@ -3926,6 +4023,9 @@ export default function Statistics() {
 
                   {/* Summary Statistics */}
                   <div className="pt-4 border-t border-slate-100 space-y-2">
+                    <div className="text-xs text-slate-500 italic mb-2">
+                      * Le graphique ci-dessus affiche les 10 motifs de sortie les plus fréquents
+                    </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Total sorties:</span>
                       <span className="font-semibold">{statistics.totalExitedWorkers}</span>
