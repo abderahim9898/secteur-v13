@@ -3389,6 +3389,49 @@ export default function Statistics() {
           <CardContent className="py-2 px-3 sm:py-3 sm:px-4">
             <div className="space-y-3 sm:space-y-4">
 
+              {/* Farm Group Filter - Campo vs Almacen */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-slate-600">Groupes:</span>
+                <div className="flex gap-2">
+                  <Button
+                    variant={farmGroup === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setFarmGroup('all');
+                      setSelectedFerme('all');
+                      setSelectedFermes([]);
+                    }}
+                    className={farmGroup === 'all' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
+                  >
+                    Tous les groupes
+                  </Button>
+                  <Button
+                    variant={farmGroup === 'campo' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setFarmGroup('campo');
+                      setSelectedFerme('all');
+                      setSelectedFermes([]);
+                    }}
+                    className={farmGroup === 'campo' ? 'bg-green-600 hover:bg-green-700' : ''}
+                  >
+                    Campo
+                  </Button>
+                  <Button
+                    variant={farmGroup === 'almacen' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setFarmGroup('almacen');
+                      setSelectedFerme('all');
+                      setSelectedFermes([]);
+                    }}
+                    className={farmGroup === 'almacen' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                  >
+                    Almacen
+                  </Button>
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 overflow-x-auto">
                 {(isSuperAdmin || hasAllFarmsAccess) && (
                   <div className="flex items-center space-x-2 flex-shrink-0 w-full sm:w-auto">
