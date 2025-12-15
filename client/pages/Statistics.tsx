@@ -3946,6 +3946,9 @@ export default function Statistics() {
 
                   {/* Summary Statistics */}
                   <div className="pt-4 border-t border-slate-100 space-y-2">
+                    <div className="text-xs text-slate-500 italic mb-2">
+                      * Le graphique ci-dessus affiche les 10 motifs de sortie les plus fréquents
+                    </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Total sorties:</span>
                       <span className="font-semibold">{statistics.totalExitedWorkers}</span>
