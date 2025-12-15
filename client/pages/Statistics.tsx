@@ -210,9 +210,32 @@ export default function Statistics() {
     return filteredWorkers;
   }, [allWorkers, farmGroup, fermes, selectedFerme, selectedGender, isSuperAdmin, hasAllFarmsAccess, user?.fermeId]);
 
-  const rooms = selectedFerme === 'all'
-    ? (isSuperAdmin || hasAllFarmsAccess ? allRooms : allRooms.filter(r => r.fermeId === user?.fermeId))
-    : allRooms.filter(r => r.fermeId === selectedFerme);
+  // Filter rooms based on farm group and selected ferme
+  const rooms = useMemo(() => {
+    let filteredRooms = allRooms;
+
+    // Filter by farm group
+    if (farmGroup === 'almacen') {
+      const almacenFermeIds = fermes
+        .filter(f => f.nom.toLowerCase().includes('almacen'))
+        .map(f => f.id);
+      filteredRooms = filteredRooms.filter(r => almacenFermeIds.includes(r.fermeId));
+    } else if (farmGroup === 'campo') {
+      const campoFermeIds = fermes
+        .filter(f => !f.nom.toLowerCase().includes('almacen'))
+        .map(f => f.id);
+      filteredRooms = filteredRooms.filter(r => campoFermeIds.includes(r.fermeId));
+    }
+
+    // Filter by specific ferme
+    if (selectedFerme !== 'all') {
+      filteredRooms = filteredRooms.filter(r => r.fermeId === selectedFerme);
+    } else if (!isSuperAdmin && !hasAllFarmsAccess) {
+      filteredRooms = filteredRooms.filter(r => r.fermeId === user?.fermeId);
+    }
+
+    return filteredRooms;
+  }, [allRooms, farmGroup, fermes, selectedFerme, isSuperAdmin, hasAllFarmsAccess, user?.fermeId]);
 
   const getPeriodBounds = useMemo(() => {
     const now = new Date();
