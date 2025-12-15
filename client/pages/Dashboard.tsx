@@ -52,6 +52,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   // Filter states for super admin
+  const [farmGroup, setFarmGroup] = useState<'all' | 'campo' | 'almacen'>('all');
   const [selectedFerme, setSelectedFerme] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
   const [selectedMonth, setSelectedMonth] = useState('');
