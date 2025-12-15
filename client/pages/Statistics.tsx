@@ -157,9 +157,22 @@ export default function Statistics() {
     };
   }, []);
 
+  // Helper function to categorize farms by group
+  const getFilteredFermesByGroup = (group: 'all' | 'campo' | 'almacen') => {
+    if (group === 'all') return fermes;
+    if (group === 'almacen') {
+      return fermes.filter(f => f.nom.toLowerCase().includes('almacen'));
+    }
+    // Campo: all other farms (not Almacen)
+    return fermes.filter(f => !f.nom.toLowerCase().includes('almacen'));
+  };
+
+  // Get the currently filtered farms based on group selection
+  const groupedFermes = getFilteredFermesByGroup(farmGroup);
+
   // Helper function to get month name
   const getMonthName = (monthNum: string) => {
-    const months = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+    const months = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
                    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
     return months[parseInt(monthNum)];
   };
