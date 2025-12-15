@@ -33,7 +33,7 @@ import { useFirestore } from '@/hooks/useFirestore';
 import { where } from 'firebase/firestore';
 import { Ferme, Worker, Room } from '@shared/types';
 import { useNavigate } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   LineChart as RechartsLineChart,
