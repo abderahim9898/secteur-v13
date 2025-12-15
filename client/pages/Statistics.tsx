@@ -3879,55 +3879,45 @@ export default function Statistics() {
                 </CardHeader>
                 <CardContent>
                   {Object.keys(statistics.exitReasons).length > 0 ? (
-                    <div id="exit-reasons-chart" className="h-96">
-                      <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300}>
-                        <BarChart
-                          data={Object.entries(statistics.exitReasons)
-                            .sort(([,a], [,b]) => b - a)
-                            .slice(0, 10)
-                            .map(([reason, count]) => ({
-                              name: getMotifLabel(reason),
-                              value: count
-                            }))}
-                          margin={{ top: 20, right: 30, left: 0, bottom: 80 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                          <XAxis
-                            dataKey="name"
-                            angle={-45}
-                            textAnchor="end"
-                            height={100}
-                            tick={{ fontSize: 11 }}
-                            interval={0}
-                          />
-                          <YAxis
-                            tick={{ fontSize: 12 }}
-                          />
-                          <Tooltip
-                            cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
-                            formatter={(value) => `${value} sorties`}
-                            contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}
-                          />
-                          <Bar
-                            dataKey="value"
-                            fill="#EF4444"
-                            radius={[8, 8, 0, 0]}
-                          >
-                            {Object.entries(statistics.exitReasons)
+                    <div id="exit-reasons-chart" className="h-96 flex items-center justify-center">
+                      {Object.entries(statistics.exitReasons).length > 0 && (
+                        <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300}>
+                          <BarChart
+                            data={Object.entries(statistics.exitReasons)
                               .sort(([,a], [,b]) => b - a)
                               .slice(0, 10)
-                              .map((_, index) => (
-                                <Cell
-                                  key={`cell-${index}`}
-                                  fill={[
-                                    '#EF4444', '#F97316', '#EAB308', '#22C55E', '#3B82F6',
-                                    '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#F59E0B'
-                                  ][index % 10]}
-                                />
-                              ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
+                              .map(([reason, count]) => ({
+                                name: getMotifLabel(reason),
+                                value: count
+                              }))}
+                            layout="vertical"
+                            margin={{ top: 5, right: 30, left: 200, bottom: 5 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis type="number" />
+                            <YAxis dataKey="name" type="category" width={190} tick={{ fontSize: 12 }} />
+                            <Tooltip
+                              cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
+                              formatter={(value) => `${value} sorties`}
+                              contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}
+                            />
+                            <Bar dataKey="value" fill="#EF4444" radius={[0, 8, 8, 0]}>
+                              {Object.entries(statistics.exitReasons)
+                                .sort(([,a], [,b]) => b - a)
+                                .slice(0, 10)
+                                .map((_, index) => (
+                                  <Cell
+                                    key={`cell-${index}`}
+                                    fill={[
+                                      '#EF4444', '#F97316', '#EAB308', '#22C55E', '#3B82F6',
+                                      '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#F59E0B'
+                                    ][index % 10]}
+                                  />
+                                ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center text-slate-500 py-8">
