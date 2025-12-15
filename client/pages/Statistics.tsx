@@ -3873,8 +3873,8 @@ export default function Statistics() {
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <PieChart className="mr-2 h-5 w-5 text-red-600" />
-                    Motifs de Sortie
+                    <BarChartIcon className="mr-2 h-5 w-5 text-red-600" />
+                    Motifs de Sortie (Top 10)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
