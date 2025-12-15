@@ -3438,12 +3438,12 @@ export default function Statistics() {
                     <Building2 className="h-4 w-4 text-slate-600" />
                     <Select value={selectedFerme} onValueChange={setSelectedFerme}>
   <SelectTrigger>
-    <SelectValue placeholder="Toutes les fermes" />
+    <SelectValue placeholder="Sélectionner une ferme" />
   </SelectTrigger>
   <SelectContent>
-    <SelectItem value="all">Toutes les fermes</SelectItem>
-    {[...fermes] // ننسخ المصفوفة عشان ما نغير الأصلية
-      .sort((a, b) => a.nom.localeCompare(b.nom)) // ترتيب أبجدي A → Z
+    <SelectItem value="all">Toutes les fermes du groupe</SelectItem>
+    {[...groupedFermes]
+      .sort((a, b) => a.nom.localeCompare(b.nom))
       .map((ferme) => (
         <SelectItem key={ferme.id} value={ferme.id}>
           {ferme.nom}
