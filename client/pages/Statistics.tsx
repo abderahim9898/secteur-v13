@@ -122,7 +122,9 @@ export default function Statistics() {
   const { data: stockTransfers } = useFirestore<StockTransfer>('stock_transfers');
   const { supervisors } = useSupervisors();
   
+  const [farmGroup, setFarmGroup] = useState<'all' | 'campo' | 'almacen'>('all');
   const [selectedFerme, setSelectedFerme] = useState('all');
+  const [selectedFermes, setSelectedFermes] = useState<string[]>([]);
   const [timeRange, setTimeRange] = useState('month');
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
