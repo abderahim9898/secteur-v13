@@ -116,6 +116,18 @@ export default function Dashboard() {
     };
   }, []); // Empty dependency array means this runs once on mount
 
+  // Get filtered fermes by group
+  const getFilteredFermesByGroup = (group: 'all' | 'campo' | 'almacen') => {
+    if (group === 'all') return fermes;
+    if (group === 'almacen') {
+      return fermes.filter(f => f.nom.toLowerCase().includes('almacen'));
+    }
+    // Campo: all other farms (not Almacen)
+    return fermes.filter(f => !f.nom.toLowerCase().includes('almacen'));
+  };
+
+  const groupedFermes = getFilteredFermesByGroup(farmGroup);
+
   // Get current user's ferme name
   const currentFermeName = user?.fermeId && fermes
     ? fermes.find(ferme => ferme.id === user.fermeId)?.nom || user.fermeId
@@ -126,6 +138,19 @@ export default function Dashboard() {
     let filtered = user?.fermeId && user.fermeId !== 'all'
       ? items.filter(item => item.fermeId === user.fermeId)
       : items;
+
+    // Apply farm group filter for users with all farms access
+    if (hasAllFarmsAccess && farmGroup === 'almacen') {
+      const almacenFermeIds = fermes
+        .filter(f => f.nom.toLowerCase().includes('almacen'))
+        .map(f => f.id);
+      filtered = filtered.filter(item => almacenFermeIds.includes(item.fermeId));
+    } else if (hasAllFarmsAccess && farmGroup === 'campo') {
+      const campoFermeIds = fermes
+        .filter(f => !f.nom.toLowerCase().includes('almacen'))
+        .map(f => f.id);
+      filtered = filtered.filter(item => campoFermeIds.includes(item.fermeId));
+    }
 
     // Apply ferme filter for users with all farms access
     if (hasAllFarmsAccess && selectedFerme !== 'all') {
